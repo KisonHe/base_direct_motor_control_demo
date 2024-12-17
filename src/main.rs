@@ -163,7 +163,7 @@ async fn main() {
         let (x, y, z) = (0.3f32, 0.0f32, 0.0f32);
         // println!("x: {}, y: {}, z: {}", x, y, z);
         let (spd1, spd2, spd3) = base_spd_2_motors_rpm(x, y, z);
-        println!("FK: spd1: {}, spd2: {}, spd3: {}", spd1, spd2, spd3);
+        // println!("FK: spd1: {}, spd2: {}, spd3: {}", spd1, spd2, spd3);
         {
             // lock is not necessary, but lets show how to use it
             let mut motor1 = MOTOR1.lock().await;
