@@ -35,25 +35,22 @@ static REDUCTION_RATIO: f32 = 1.0f32;
 static WHEEL_RADIUS: f32 = 0.103f32;
 
 fn base_spd_2_motors_rpm(x: f32, y: f32, z: f32) -> (i16, i16, i16) {
-    let ms2rpm_magic = REDUCTION_RATIO * 60.0f32 / (std::f32::consts::PI * WHEEL_RADIUS * 2.0f32);
-    // println!("ms2rpm_magic: {}", ms2rpm_magic);
-    let motor1_ms = -y + z * VEHICLE_RADIUS;
-    // println!("motor1_ms: {}", motor1_ms);
-    let motor1_rpm = (motor1_ms * ms2rpm_magic) as i16;
-    // println!("motor1_rpm: {}", motor1_rpm);
+    let ms2rpm_magic = REDUCTION_RATIO * 60.0 / (std::f32::consts::PI * 2.0 * WHEEL_RADIUS);
 
-    let motor2_ms = y * VFACTOR1 + z * VEHICLE_RADIUS - x * VFACTOR;
+    let motor1_ms = x * VFACTOR - y * VFACTOR1 - z * VEHICLE_RADIUS;
+    let motor1_rpm = (motor1_ms * ms2rpm_magic) as i16;
+
+    let motor2_ms = y - z * VEHICLE_RADIUS;
     let motor2_rpm = (motor2_ms * ms2rpm_magic) as i16;
 
-    let motor3_ms = -y * VFACTOR1 - z * VEHICLE_RADIUS - x * VFACTOR;
+    let motor3_ms = -x * VFACTOR - y * VFACTOR1 - z * VEHICLE_RADIUS;
     let motor3_rpm = (motor3_ms * ms2rpm_magic) as i16;
 
     println!(
         "motor1_ms: {}, motor2_ms: {}, motor3_ms: {}",
         motor1_ms, motor2_ms, motor3_ms
     );
-
-    return (motor1_rpm, motor2_rpm, motor3_rpm);
+    (motor1_rpm, motor2_rpm, motor3_rpm)
 }
 
 struct Motor {
@@ -99,11 +96,11 @@ where
             (4000u16 & 0xFF) as u8,
             (rpm >> 8) as u8,
             (rpm & 0xFF) as u8,
-            0x55,
-            0x55,
-            0x55,
-            0x55,
-        ], // 0x55 is just a placeholder. Filling data to 8 bytes.
+            0x00, //must be 0x00
+            0x00, //must be 0x00
+            0x00,
+            0x00,
+        ],
     )
     .unwrap();
     tx.send(socketcan::CanFrame::Data(frame)).await.unwrap();
@@ -123,7 +120,7 @@ fn generate_reboot_command(id: u8) -> CanFrame {
 
 #[tokio::main]
 async fn main() {
-    let can_name = "xvcan0".to_string();
+    let can_name = "vcan0".to_string();
     let mut bus = socketcan::tokio::CanSocket::open(&can_name).unwrap();
     let (mut tx, mut rx) = bus.split();
     // First, send reboot commands
@@ -163,6 +160,7 @@ async fn main() {
         let (x, y, z) = (0.3f32, 0.0f32, 0.0f32);
         // println!("x: {}, y: {}, z: {}", x, y, z);
         let (spd1, spd2, spd3) = base_spd_2_motors_rpm(x, y, z);
+        println!("FK: spd1: {}, spd2: {}, spd3: {}", spd1, spd2, spd3);
         // println!("FK: spd1: {}, spd2: {}, spd3: {}", spd1, spd2, spd3);
         {
             // lock is not necessary, but lets show how to use it
